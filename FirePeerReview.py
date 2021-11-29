@@ -94,7 +94,7 @@ def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[]):
         server.starttls(context=context) # Secure the connection
         server.ehlo() # Can be omitted
         server.login(user, pwd)
-        # server.sendmail(sender, recipient, text)
+        server.sendmail(sender, recipient, text)
     except Exception as e:
         print(e)
     finally:
