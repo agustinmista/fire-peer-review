@@ -51,7 +51,7 @@ def AssignReviewers(tar_file):
 # ----------------------------------------
 # Send an email using Chalmers credentials
 
-def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[]):
+def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[], bcc=None):
     print("Sending email to %s, with attachments %s" % (recipient, attachments))
 
     # Connection details
@@ -65,6 +65,8 @@ def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[]):
     message["From"] = sender
     message["To"] = recipient
     message["Subject"] = subject
+    if cco is not None:
+        message["Bcc"] = bcc
 
     # Add the message body to the email
     message.attach(MIMEText(body, "plain"))
@@ -118,10 +120,11 @@ if __name__ == '__main__':
     cid = input("Enter your Chalmers CID: ")
     pwd = input("Enter your password: ")
 
-    # The email subject
-    subject = "[DAT315/DIT199] Peer review exercise"
-    # The email template
-    template = "\r\n".join([
+    # The email subject template
+    subject_template = "[DAT315/DIT199] Peer review exercise (%s)"
+    
+    # The email body template
+    body_template = "\r\n".join([
         "Hi %s!",
         "",
         "You were assigned to review the summaries of the following students:",
@@ -135,16 +138,21 @@ if __name__ == '__main__':
         "Thank you for your work!",
         "",
         "Best,",
-        "Agustin Mista",
+        "The Computer Scientist in Society Team",
         "",
         "PS: this email was generated automatically. If you see anything weird going on please let me know asap!"
     ])
 
     for student in jobs:
+        
         (peer1, peer1_pdf_path, peer1_pdf_name) = jobs[student][0]
         (peer2, peer2_pdf_path, peer2_pdf_name) = jobs[student][1]
 
-        body = template % (
+        subject = subject_template % (
+            student
+        )
+        
+        body = body_template % (
             student,
             peer1, peer1_pdf_name,
             peer2, peer2_pdf_name,
@@ -155,6 +163,8 @@ if __name__ == '__main__':
             (peer2_pdf_path, peer2_pdf_name)
         ]
 
+        bcc = None
+        
         # Send the email!
-        SendChalmersEmail(cid, pwd, student, subject, body, attachments)
+        SendChalmersEmail(cid, pwd, student, subject, body, attachments, bcc)
         time.sleep(1)
