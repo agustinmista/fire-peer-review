@@ -4,6 +4,7 @@ import os, sys
 import string
 import glob, re
 import smtplib, ssl, email
+import time
 
 from email import encoders
 from email.mime.base import MIMEBase
@@ -156,3 +157,4 @@ if __name__ == '__main__':
 
         # Send the email!
         SendChalmersEmail(cid, pwd, student, subject, body, attachments)
+        time.sleep(1)
