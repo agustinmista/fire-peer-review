@@ -3,9 +3,14 @@
 A small Python script to send Fire submissions via email for peer review.
 
 * Creates two review jobs for each submission.
-* The email subject and body can be changed in the template files.
-* Credentials can be passed via CLI arguments or interactively.
+* The email subject and body can be changed in the template files (`subject.txt` and `body.txt`).
+* Chalmers credentials can be passed via CLI arguments or interactively.
 * The `test_submission.tar.gz` is provided to run tests before using it for real.
+
+## Dependencies
+
+* `python3`
+* `tar`
 
 ## Command-line options
 
