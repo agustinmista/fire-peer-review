@@ -175,7 +175,6 @@ if __name__ == '__main__':
 
     # Start sending emails
     for student, (job1, job2) in jobs.items():
-        print("Processing student {}".format(student))
 
         # Unpack the jobs of this student
         (peer1, peer1_pdf_path, peer1_pdf_name) = job1

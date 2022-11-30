@@ -48,10 +48,7 @@ Assigning jobs:
 * foo@foo.com will review: bar@bar.com, baz@baz.com
 Reading template file subject.txt
 Reading template file body.txt
-Processing student bar@bar.com
 Sending email to bar@bar.com (BCC=['someone@somewhere.com']) (attachments=[('submissions_2727/baz@baz.com/baz.pdf', 'baz.pdf'), ('submissions_2727/foo@foo.com/foo.pdf', 'foo.pdf')])
-Processing student baz@baz.com
 Sending email to baz@baz.com (BCC=['someone@somewhere.com']) (attachments=[('submissions_2727/foo@foo.com/foo.pdf', 'foo.pdf'), ('submissions_2727/bar@bar.com/bar.pdf', 'bar.pdf')])
-Processing student foo@foo.com
 Sending email to foo@foo.com (BCC=['someone@somewhere.com']) (attachments=[('submissions_2727/bar@bar.com/bar.pdf', 'bar.pdf'), ('submissions_2727/baz@baz.com/baz.pdf', 'baz.pdf')])
 ```
