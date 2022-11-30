@@ -1,9 +1,8 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 
-import os, sys
-import string
+import os
 import glob, re
-import smtplib, ssl, email
+import smtplib, ssl
 import time
 
 from email import encoders
@@ -11,48 +10,58 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from optparse import OptionParser
+
+from random import randint
+
+from getpass import getpass
+
 # ----------------------------------------
 # Read a submission directory created by Fire and assign peer reviewers
 
 def AssignReviewers(tar_file):
 
     # Create a new directory and extract the submissions inside
-    subs_dir = "submissions"
-    print("Extracting %s to %s " % (tar_file, subs_dir))
+    subs_dir = "{}_{}".format("submissions", RandomWithNDigits(4))
+    print("Extracting {} to {}".format(tar_file, subs_dir))
     tar_file = re.escape(glob.glob(tar_file)[0])
     os.mkdir(subs_dir)
-    os.system("tar -xvf %s --directory %s --strip-components=1 > /dev/null" % (tar_file, subs_dir))
+    os.system("tar -xvf {} --directory {} --strip-components=1 > /dev/null".format(tar_file, subs_dir))
 
     # Read the student emails from the extracted submissions and create a dictionary of review jobs
-    students = [ os.path.basename(folder) for folder in glob.glob("%s/*" % subs_dir) ]
+    students = [ os.path.basename(folder) for folder in glob.glob("{}/*".format(subs_dir)) ]
     peers1 = students[1::] + students[0:1]
     peers2 = students[2::] + students[0:2]
 
+    print("Assigning jobs:")
     jobs = dict()
     for (student, peer1, peer2) in zip(students, peers1, peers2):
+        print("* {} will review: {}, {}".format(student, peer1, peer2))
+
         # Find the PDFs to review
-        peer1_pdfs = glob.glob("%s/%s/*.pdf" % (subs_dir, peer1))
-        peer2_pdfs = glob.glob("%s/%s/*.pdf" % (subs_dir, peer2))
+        peer1_pdfs = glob.glob("{}/{}/*.pdf".format(subs_dir, peer1))
+        peer2_pdfs = glob.glob("{}/{}/*.pdf".format(subs_dir, peer2))
 
-        print("%s will review: %s, %s" % (student, peer1, peer2))
-
+        # Make sure we only have one PDF per student
         if len(peer1_pdfs) != 1 or len(peer2_pdfs) != 1:
-            print("ERROR! Found multiple submitted PDFs when creating tasks for %s" % student)
+            print("ERROR! Found multiple submitted PDFs when creating tasks for {}".format(student))
             exit()
 
+        peer1_pdf = peer1_pdfs[0]
+        peer2_pdf = peer2_pdfs[0]
+
         # Save the student's jobs
-        jobs[student] = [
-            (peer1, peer1_pdfs[0], "summary1.pdf"),
-            (peer2, peer2_pdfs[0], "summary2.pdf")
-        ]
+        jobs[student] = (
+            (peer1, peer1_pdf, os.path.basename(peer1_pdf)),
+            (peer2, peer2_pdf, os.path.basename(peer2_pdf))
+        )
 
     return jobs
 
 # ----------------------------------------
 # Send an email using Chalmers credentials
 
-def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[], bcc=None):
-    print("Sending email to %s, with attachments %s" % (recipient, attachments))
+def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[], bcc=[]):
 
     # Connection details
     server_uri = "smtp.chalmers.se"
@@ -60,13 +69,14 @@ def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[], bcc=No
     user = "net.chalmers.se\\" + cid
     sender = cid + "@chalmers.se"
 
+    # Compute the actual email recipients (BCC's appear here but not in the email headers)
+    recipients = [recipient] + bcc
+
     # Create a multipart message and set headers
     message = MIMEMultipart()
     message["From"] = sender
     message["To"] = recipient
     message["Subject"] = subject
-    if cco is not None:
-        message["Bcc"] = bcc
 
     # Add the message body to the email
     message.attach(MIMEText(body, "plain"))
@@ -82,14 +92,14 @@ def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[], bcc=No
             # Encode file in ASCII characters to send by email
             encoders.encode_base64(part)
             # Add header as key/value pair to attachment part
-            part.add_header("Content-Disposition", "attachment; filename=%s" % name)
+            part.add_header("Content-Disposition", "attachment; filename={}".format(name))
             # Add attachment to message
             message.attach(part)
 
     # Convert the final message to text
     text = message.as_string()
 
-    # Send the email
+    # Try to send the email
     try:
         context = ssl.create_default_context()
         server = smtplib.SMTP(server_uri, server_port)
@@ -97,74 +107,101 @@ def SendChalmersEmail(cid, pwd, recipient, subject, body, attachments=[], bcc=No
         server.starttls(context=context) # Secure the connection
         server.ehlo() # Can be omitted
         server.login(user, pwd)
-        server.sendmail(sender, recipient, text)
+        server.sendmail(sender, recipients, text)
     except Exception as e:
         print(e)
     finally:
         server.quit()
 
 # ----------------------------------------
+# Helpers
+
+def RandomWithNDigits(n):
+    range_start = 10**(n-1)
+    range_end = (10**n)-1
+    return randint(range_start, range_end)
+
+def ReadTemplate(path):
+    print("Reading template file {}".format(path))
+    with open(path, "r") as template:
+        return template.read()
+
+# ----------------------------------------
+# Parsing CLI options
+
+help_text = """%prog [options] /path/to/fire/submissions.tar.gz
+
+Available variables for template files:
+  * student: student email address (the recipient)
+  * peer1:   peer #1 email address
+  * peer2:   peer #2 email adress
+  * pdf1:    peer #1 PDF attachment name
+  * pdf2:    peer #2 PDF attachment name"""
+
+parser = OptionParser(usage=help_text)
+parser.add_option("--cid",     dest="cid",     default=None,                               metavar="CID",    help="sender Chalmers CID")
+parser.add_option("--pwd",     dest="pwd",     default=None,                               metavar="PWD",    help="sender Chalmers password")
+parser.add_option("--bcc",     dest="bcc",     default=[],            action="append",     metavar="EMAIL",  help="add an extra bcc recipient (can be used multiple times)")
+parser.add_option("--subject", dest="subject", default="subject.txt",                      metavar="PATH",   help="email subject template file")
+parser.add_option("--body",    dest="body",    default="body.txt",                         metavar="PATH",   help="email body template file")
+parser.add_option("--dry",     dest="dry",     default=False,         action="store_true",                   help="process everything but do not send any emails")
+
+# ----------------------------------------
 # if-name-main
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
-        print("USAGE: %s path/to/fire/submissions.tar.gz" % sys.argv[0])
+    # Parse CLI options
+    (opts, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.print_help()
         exit()
 
+    # Extract the CLI options, asking for input if cid/pass were not provided
+    tar_file = args[0]
+    cid = opts.cid if opts.cid is not None else input("Enter your Chalmers CID: ")
+    pwd = opts.pwd if opts.pwd is not None else getpass("Enter your password: ")
+    bcc = opts.bcc
+    subject_template_file = opts.subject
+    body_template_file    = opts.body
+    dry = opts.dry
+
     # Create the reviewing jobs
-    tar_file = sys.argv[1]
     jobs = AssignReviewers(tar_file)
 
-    # Ask for credentials
-    cid = input("Enter your Chalmers CID: ")
-    pwd = input("Enter your password: ")
+    # Read the template files
+    subject_template = ReadTemplate(subject_template_file)
+    body_template    = ReadTemplate(body_template_file)
 
-    # The email subject template
-    subject_template = "[DAT315/DIT199] Peer review exercise (%s)"
-    
-    # The email body template
-    body_template = "\r\n".join([
-        "Hi %s!",
-        "",
-        "You were assigned to review the summaries of the following students:",
-        "  * %s: %s",
-        "  * %s: %s",
-        "",
-        "When your reviews are ready:",
-        "  * Send them to their corresponding authors via email.",
-        "  * Submit them to Fire under \"Summary (peer reviews)\". The deadline for this is 2021-12-06 @ 23:59.",
-        "",
-        "Thank you for your work!",
-        "",
-        "Best,",
-        "The Computer Scientist in Society Team",
-        "",
-        "PS: this email was generated automatically. If you see anything weird going on please let me know asap!"
-    ])
+    # Start sending emails
+    for student, (job1, job2) in jobs.items():
+        print("Processing student {}".format(student))
 
-    for student in jobs:
-        
-        (peer1, peer1_pdf_path, peer1_pdf_name) = jobs[student][0]
-        (peer2, peer2_pdf_path, peer2_pdf_name) = jobs[student][1]
+        # Unpack the jobs of this student
+        (peer1, peer1_pdf_path, peer1_pdf_name) = job1
+        (peer2, peer2_pdf_path, peer2_pdf_name) = job2
 
-        subject = subject_template % (
-            student
-        )
-        
-        body = body_template % (
-            student,
-            peer1, peer1_pdf_name,
-            peer2, peer2_pdf_name,
-        )
+        # Fill the message subject and body templates
+        template_vars = {
+            "student" : student,
+            "peer1" : peer1, "pdf1" : peer1_pdf_name,
+            "peer2" : peer2, "pdf2" : peer2_pdf_name
+        }
+        subject = subject_template.format(**template_vars)
+        body    = body_template.format(**template_vars)
 
+        # Prepare the attachments
         attachments = [
             (peer1_pdf_path, peer1_pdf_name),
             (peer2_pdf_path, peer2_pdf_name)
         ]
 
-        bcc = None
-        
-        # Send the email!
-        SendChalmersEmail(cid, pwd, student, subject, body, attachments, bcc)
+        if dry:
+            print("Pretending to send email to {} (BCC={}) (attachments={})".format(student, bcc, attachments))
+        else:
+            # Email server goes brrr
+            print("Sending email to {} (BCC={}) (attachments={})".format(student, bcc, attachments))
+            SendChalmersEmail(cid, pwd, student, subject, body, attachments, bcc)
+
+        # Wait a bit to not overwhelm the server
         time.sleep(1)

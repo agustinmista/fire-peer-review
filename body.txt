@@ -1,0 +1,16 @@
+Hi {student}!
+
+You were assigned to review the summaries of the following students:
+  * {peer1}: {pdf1}
+  * {peer2}: {pdf2}
+
+When your reviews are ready:
+  * Send them to their corresponding authors via email.
+  * Submit them to Fire under "Summary (peer review)". The deadline for this is 2022-12-04 @ 23:59.
+
+Thank you for your work!
+
+Best,
+The Computer Scientist in Society Team
+
+PS: this email was generated automatically. If you see anything weird going on please let me know ASAP!
