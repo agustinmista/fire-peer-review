@@ -38,7 +38,7 @@ Options:
 ## Usage example
 
 ```
-./FirePeerReview.py test_submission.tar.gz --bcc=someone@somewhere.com
+$ ./FirePeerReview.py test_submission.tar.gz --bcc=someone@somewhere.com
 Enter your Chalmers CID: <my_cid>
 Enter your password: <my_password>
 Extracting test_submission.tar.gz to submissions_2727
