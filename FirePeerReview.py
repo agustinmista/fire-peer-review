@@ -126,6 +126,20 @@ def ReadTemplate(path):
     with open(path, "r") as template:
         return template.read()
 
+def ReadIgnoreFile(path):
+    print("Reading ignore file {}".format(path))
+    try:
+        with open(path, "r") as ignore:
+            emails = [line.rstrip() for line in ignore]
+            return emails
+    except FileNotFoundError as e:
+        print("Ignore file {} does not exist. Skipping it.".format(path))
+        return []
+
+def AppendEmailToIgnoreFile(path, email):
+    with open(path, "a") as ignore:
+        ignore.write("{}\n".format(email))
+
 # ----------------------------------------
 # Parsing CLI options
 
@@ -144,6 +158,8 @@ parser.add_option("--pwd",     dest="pwd",     default=None,                    
 parser.add_option("--bcc",     dest="bcc",     default=[],            action="append",     metavar="EMAIL",  help="add an extra bcc recipient (can be used multiple times)")
 parser.add_option("--subject", dest="subject", default="subject.txt",                      metavar="PATH",   help="email subject template file")
 parser.add_option("--body",    dest="body",    default="body.txt",                         metavar="PATH",   help="email body template file")
+parser.add_option("--ignore",  dest="ignore",  default="sent.log",                         metavar="PATH",   help="ignore sending emails to certain students from a file")
+parser.add_option("--rate",    dest="rate",    default=10,            type=int,            metavar="PATH",   help="email sending rate (in seconds)")
 parser.add_option("--dry",     dest="dry",     default=False,         action="store_true",                   help="process everything but do not send any emails")
 
 # ----------------------------------------
@@ -163,8 +179,16 @@ if __name__ == '__main__':
     pwd = opts.pwd if opts.pwd is not None else getpass("Enter your password: ")
     bcc = opts.bcc
     subject_template_file = opts.subject
-    body_template_file    = opts.body
+    body_template_file = opts.body
+    ignore_file = opts.ignore
+    rate = opts.rate
     dry = opts.dry
+
+    ignored_emails = ReadIgnoreFile(ignore_file)
+    if len(ignored_emails) > 0:
+        print("Ignoring the following emails:")
+        for email in ignored_emails:
+            print("* {}".format(email))
 
     # Create the reviewing jobs
     jobs = AssignReviewers(tar_file)
@@ -175,6 +199,10 @@ if __name__ == '__main__':
 
     # Start sending emails
     for student, (job1, job2) in jobs.items():
+
+        # Skip ignored emails
+        if student in ignored_emails:
+            continue
 
         # Unpack the jobs of this student
         (peer1, peer1_pdf_path, peer1_pdf_name) = job1
@@ -202,5 +230,8 @@ if __name__ == '__main__':
             print("Sending email to {} (BCC={}) (attachments={})".format(student, bcc, attachments))
             SendChalmersEmail(cid, pwd, student, subject, body, attachments, bcc)
 
+        # Save this email for later in case we hit the rate limit
+        AppendEmailToIgnoreFile(ignore_file, student)
+
         # Wait a bit to not overwhelm the server
-        time.sleep(1)
+        time.sleep(rate)

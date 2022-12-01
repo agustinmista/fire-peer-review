@@ -6,6 +6,7 @@ A small Python script to send Fire submissions via email for peer review.
 * The email subject and body can be changed in the template files (`subject.txt` and `body.txt`).
 * Chalmers credentials can be passed via CLI arguments or interactively.
 * The `test_submission.tar.gz` is provided to run tests before using it for real.
+* We log sent email addresses to a file (default `sent.log`) to be ignored on subsequent runs. This is to avoid sending duplicates in case we hit the server's rate limit.
 
 ## Dependencies
 
@@ -15,7 +16,6 @@ A small Python script to send Fire submissions via email for peer review.
 ## Command-line options
 
 ```
-$ ./FirePeerReview.py --help
 Usage: FirePeerReview.py [options] /path/to/fire/submissions.tar.gz
 
 Available variables for template files:
@@ -32,6 +32,8 @@ Options:
   --bcc=EMAIL     add an extra bcc recipient (can be used multiple times)
   --subject=PATH  email subject template file
   --body=PATH     email body template file
+  --ignore=PATH   ignore sending emails to certain students from a file
+  --rate=PATH     email sending rate (in seconds)
   --dry           process everything but do not send any emails
 ```
 
