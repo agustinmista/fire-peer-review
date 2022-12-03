@@ -52,8 +52,8 @@ def AssignReviewers(tar_file):
 
         # Save the student's jobs
         jobs[student] = (
-            (peer1, peer1_pdf, os.path.basename(peer1_pdf)),
-            (peer2, peer2_pdf, os.path.basename(peer2_pdf))
+            (peer1, peer1_pdf, ascii(os.path.basename(peer1_pdf))),
+            (peer2, peer2_pdf, ascii(os.path.basename(peer2_pdf)))
         )
 
     return jobs
