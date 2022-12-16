@@ -21,7 +21,7 @@ Usage: FirePeerReview.py [options] /path/to/fire/submissions.tar.gz
 Available variables for template files:
   * student: student email address (the recipient)
   * peer1:   peer #1 email address
-  * peer2:   peer #2 email adress
+  * peer2:   peer #2 email adresss
   * pdf1:    peer #1 PDF attachment name
   * pdf2:    peer #2 PDF attachment name
 
